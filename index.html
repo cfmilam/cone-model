@@ -1291,14 +1291,35 @@
                 ctx.ellipse(baseX, apexY, ellipseRx * 0.85, ellipseRy * 0.85, 0, 0, 2 * Math.PI);
                 ctx.stroke();
                 
-                // Velocity triangle (projected)
+                // Velocity triangle (projected onto cone surface)
                 if (vel > 0.01) {
                     const tObs = 0.7;
-                    const txFrac = tObs * Math.sqrt(1 - vel * vel);
-                    const scFrac = vel * tObs;
                     
-                    const txPx = txFrac * (baseX - apexX);
-                    const scPx = scFrac * ellipseRy * 0.85;
+                    // The cone edge at tObs fraction goes from apex to:
+                    //   edge point = (apexX + tObs*(baseX-apexX), apexY - tObs*ellipseRy*0.85)
+                    // The T-axis at tObs fraction is:
+                    //   axis point = (apexX + tObs*(baseX-apexX), apexY)
+                    // 
+                    // X lies on the cone surface. In the drawn geometry, the cone surface
+                    // from apex to edge defines the visual angle. The hypotenuse from O to X
+                    // must have constant visual length for all v (it represents observer time t).
+                    //
+                    // We compute X by: the visual angle of the cone edge from horizontal is α.
+                    // X sits at angle v*α from horizontal (v=0 → T-axis, v=1 → cone edge).
+                    // The hypotenuse visual length = distance from apex to edge point (at tObs).
+                    
+                    const edgeDx = tObs * (baseX - apexX);
+                    const edgeDy = tObs * ellipseRy * 0.85; // positive = upward displacement
+                    const coneAlpha = Math.atan2(edgeDy, edgeDx); // visual half-angle of cone
+                    const hypLen = Math.sqrt(edgeDx * edgeDx + edgeDy * edgeDy); // hypotenuse px length
+                    
+                    // X at angle v * coneAlpha from horizontal, at distance hypLen from apex
+                    const xAngle = vel * coneAlpha;
+                    const xPosX = apexX + hypLen * Math.cos(xAngle);
+                    const xPosY = apexY - hypLen * Math.sin(xAngle);
+                    
+                    const txPx = xPosX - apexX;  // horizontal projection = tₓ
+                    const scPx = apexY - xPosY;   // vertical projection = s/c
                     
                     ctx.strokeStyle = '#e74c3c';
                     ctx.lineWidth = 2.5;
